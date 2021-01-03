@@ -122,7 +122,7 @@ $profileContentFilePath = Join-Path -Path (Join-Path -Path (Get-Location).Path -
 az storage blob upload -f $profileContentFilePath -c "scripts" -n $profileContent --account-name $StackName --account-key $key1
 $uploadList += "https://$StackName.blob.core.windows.net/scripts/$profileContent"
 
-if (!$GitReposFilePath -and (Test-Path $GitReposFilePath)) {
+if ($GitReposFilePath -and (Test-Path $GitReposFilePath)) {
     az storage blob upload -f $GitReposFilePath -c "scripts" -n "gitrepos.txt" --account-name $StackName --account-key $key1
     $uploadList += "https://$StackName.blob.core.windows.net/scripts/gitrepos.txt"
 }
