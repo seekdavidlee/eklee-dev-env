@@ -171,8 +171,9 @@ $reqs = @(
     @{"name" = "sql-server-management-studio"; "version" = "latest" }, 
     @{"name" = "terraform"; "version" = "latest" }, 
     @{"name" = "docker-desktop"; "version" = "latest" }, 
-    @{"name" = "azure-cli"; "version" = "2.16.0" }, 
+    @{"name" = "azure-cli"; "version" = "latest" }, 
     @{"name" = "kubernetes-helm"; "version" = "latest" },
+    @{"name" = "nodejs"; "version" = "latest" },
     @{"name" = "wsl2"; "version" = "latest" })
 
 for ($i = 0; $i -lt $reqs.Length; $i++) {
