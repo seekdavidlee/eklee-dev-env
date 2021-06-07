@@ -1,5 +1,8 @@
 param(
-    [Parameter(Mandatory = $true)]$StackName, 
+    [Parameter(Mandatory = $true)] $StackName, 
+    [Parameter(Mandatory = $true)] $GitDisplayName,
+    [Parameter(Mandatory = $true)] $GitEmail,
+    [Parameter(Mandatory = $false)]$UserObjectId, 
     [Parameter(Mandatory = $false)]$ImageSku, 
     [Parameter(Mandatory = $false)]$OpenToIP, 
     [Parameter(Mandatory = $false)]$GitReposFilePath, 
@@ -7,7 +10,7 @@ param(
     [Parameter(Mandatory = $false)]$ShutdownTime,
     [Parameter(Mandatory = $false)]$ShutdownTimeZoneId,
     [Parameter(Mandatory = $false)]$VmSize,
-    [Switch]$UseVisualStudioCommunity, 
+    [Switch]$UseVisualStudioEnterprise, 
     [Switch]$SkipApplyResources, 
     [Switch]$ForcePasswordChange, 
     [Switch]$UseAltLocation)
@@ -16,6 +19,14 @@ $ErrorActionPreference = "Stop"
 
 if ((az account list | ConvertFrom-Json).Length -eq 0) {
     az login
+}
+
+if (!$UserObjectId) {
+    $UserObjectId = ((az ad user list --upn (az account list | ConvertFrom-Json).user[0].name) | ConvertFrom-Json).objectId
+    if (!$UserObjectId) {
+        Write-Error "Unable to get user Object Id"
+        return
+    }
 }
 
 if (!$Location) {
@@ -37,16 +48,14 @@ else {
     Write-Host "Resource Group $StackName exist."
 }
 
-$objectId = ((az ad user list --upn (az account list | ConvertFrom-Json).user[0].name) | ConvertFrom-Json).objectId
-
 if (!$SkipApplyResources) {
 
     if (!$ImageSku) {        
-        if ($UseVisualStudioCommunity) {
-            $ImageSku = "vs-2019-comm-latest-win10-n"
+        if ($UseVisualStudioEnterprise) {
+            $ImageSku = "vs-2019-ent-latest-win10-n"
         }
         else {
-            $ImageSku = "vs-2019-ent-latest-win10-n"
+            $ImageSku = "vs-2019-comm-latest-win10-n"
         }        
     }
     
@@ -71,7 +80,7 @@ if (!$SkipApplyResources) {
     }
 
     az deployment group create --resource-group $StackName --template-file ./deployment/dev-vm.json `
-        --parameters stackName=$StackName loginPassword=$plainText objectId=$objectId myIP=$OpenToIP imageSku=$ImageSku shutdownTime=$ShutdownTime shutdownTimeZoneId=$ShutdownTimeZoneId vmSize=$VmSize | ConvertFrom-Json
+        --parameters stackName=$StackName loginPassword=$plainText objectId=$UserObjectId myIP=$OpenToIP imageSku=$ImageSku shutdownTime=$ShutdownTime shutdownTimeZoneId=$ShutdownTimeZoneId vmSize=$VmSize | ConvertFrom-Json
 }
 
 $secrets = az keyvault secret list --vault-name $StackName --query "[].{Name:name}" | ConvertFrom-Json
@@ -130,11 +139,7 @@ if ($GitReposFilePath -and (Test-Path $GitReposFilePath)) {
 $settings = @{ "fileUris" = $uploadList; } | ConvertTo-Json -Compress
 $settings = $settings.Replace("""", "'")
 
-$user = az ad user list --upn (az account list | ConvertFrom-Json).user[0].name | ConvertFrom-Json
-$gitUser = $user.displayName
-$gitEmail = $user.userPrincipalName
-
-$cmd = "powershell -ExecutionPolicy Unrestricted -File $setupFile -StackName $StackName -GitConfigUser $gitUser -GitConfigEmail $gitEmail -UserObjectId $objectId"
+$cmd = "powershell -ExecutionPolicy Unrestricted -File $setupFile -StackName $StackName -GitConfigUser $GitDisplayName -GitConfigEmail $GitEmail -UserObjectId $UserObjectId"
 
 $protectedSettings = @{"commandToExecute" = $cmd; "storageAccountName" = $StackName; "storageAccountKey" = $key1 } | ConvertTo-Json -Compress
 $protectedSettings = $protectedSettings.Replace("""", "'")

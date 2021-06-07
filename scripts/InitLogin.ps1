@@ -51,12 +51,6 @@ for ($i = 0; $i -lt $ext.Length; $i++) {
     }    
 }
 
-$list = az account list | ConvertFrom-Json 
-
-if ($list.Length -eq 0) { 
-    az login --use-device-code 
-}
-
 if ((Get-ExecutionPolicy -Scope LocalMachine) -ne "Unrestricted") {
     Set-ExecutionPolicy -ExecutionPolicy Unrestricted -Scope LocalMachine -Force
 }
